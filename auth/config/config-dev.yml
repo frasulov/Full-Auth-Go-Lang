@@ -1,0 +1,32 @@
+server:
+  port: 8081
+profile:
+  active: dev
+
+
+database:
+  host: localhost
+  user: postgres
+  password: postgrespassword
+  dbname: postgres
+  sslmode: disable
+  timezone: UTC
+  port: 5432
+
+
+password:
+  resetExpire: 24
+  jwt:
+    secretKey: secret
+    publicKey: secret
+    privateKey: secret
+    saltKey: secret
+    accessTokenExpire: 3
+    refreshTokenExpire: 7
+
+
+redis:
+  host: localhost
+  port: 6379
+  db: 1
+  expires: 1000

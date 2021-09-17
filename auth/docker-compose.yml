@@ -1,0 +1,34 @@
+version: '3.6'
+services:
+  redis:
+    image: redis
+    volumes:
+      - db_data:/var/lib/postgresql/redisdata
+    ports:
+      - "6379:6379"
+  postgres:
+    image: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/start_up_auth
+    ports:
+      - "5432:5432"
+    extra_hosts:
+      - "localhost:172.16.11.40"
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+#  app:
+#    container_name: startapp-auth
+#    depends_on:
+#      - "postgres"
+#    image: app-dev
+#    build:
+#      context: .
+#      target: development
+#    volumes:
+#      - .:/app
+#    ports:
+#      - "4001:4001"
+#    extra_hosts:
+#      - "localhost:172.16.11.40"
+volumes:
+  db_data:
