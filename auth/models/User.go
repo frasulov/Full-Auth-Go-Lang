@@ -29,7 +29,7 @@ func (user * User) AfterCreate(conn *gorm.DB) (err error) {
 	userVerificationToken := UserVerificationToken{
 		Token: token,
 		UserId: user.ID,
-		ExpiredAt: time.Now().Add(time.Minute*30).Unix(),
+		ExpiredAt: time.Now().Add(time.Minute*time.Duration(config.Configuration.Password.ActivateAccountTokenExpire)).Unix(),
 	}
 	userVerificationTokenRepository.Save(&userVerificationToken)
 	link := fmt.Sprintf("%s:%v/confirm-email/%s", config.Configuration.Server.Host, config.Configuration.Server.Port, token)

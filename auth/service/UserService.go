@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"net/smtp"
+	"strconv"
 	"time"
 )
 
@@ -32,8 +33,8 @@ func (userService * UserService) FindUserByEmailOrUsername(username string) (mod
 func (userService * UserService) ResetPassword(password, confirmPassword, uuid string) ([]byte, error) {
 	passwordForgotRequestRepository := repo.GetNewPasswordForgotRequestRepository(userService.repository.GetConnection())
 	passwordForgotRequestRepository.Init()
-	if len(password) < 8 {
-		return nil, fmt.Errorf("Password length should be more than or equal to 8!")
+	if len(password) < config.Configuration.Password.MinLength {
+		return nil, fmt.Errorf("Password length should be more than or equal to %v!", config.Configuration.Password.MinLength)
 	}
 	if password != confirmPassword {
 		return nil, fmt.Errorf("Passwords are not same!")
@@ -42,7 +43,7 @@ func (userService * UserService) ResetPassword(password, confirmPassword, uuid s
 	if err != nil {
 		return nil, fmt.Errorf("Token is not valid!")
 	}
-	if pfr.CreatedAt.Add(time.Hour*24).Unix() > time.Now().Unix() {
+	if pfr.CreatedAt.Add(time.Minute*time.Duration(config.Configuration.Password.ForgotPasswordTokenExpire)).Unix() > time.Now().Unix() {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 		if err != nil{
 			return nil, fmt.Errorf("Unable to hash password")
@@ -111,4 +112,29 @@ func (userService *UserService) RegisterUser(user *models.User) error {
 
 func (userService * UserService) ActivateUser(id uint) error{
 	return userService.repository.UpdateActive(id)
+}
+
+func (userService * UserService) ChangePassword(id string, old, new, confirm string) ([]byte, error){
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid User id")
+	}
+	user := userService.repository.GetUserById(uint(idInt))
+
+	if len(new) < config.Configuration.Password.MinLength {
+		return nil, fmt.Errorf("Password length should be more than or equal to 8!")
+	}
+	if new != confirm {
+		return nil, fmt.Errorf("New and Confirm password does not match!")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(old)); err != nil {
+		return nil, fmt.Errorf("Old passwrod does not correct!")
+	}
+
+	password, err := bcrypt.GenerateFromPassword([]byte(new), 14)
+	if err != nil{
+		return nil, fmt.Errorf("Unable to hash password")
+	}
+	userService.repository.SetPassword(uint(idInt), string(password))
+	return []byte("Password has been changed succesfully"), nil
 }

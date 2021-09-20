@@ -4,6 +4,7 @@ import (
 	"auth/config"
 	jwt2 "auth/jwt"
 	"auth/route"
+	"auth/scheduler"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,8 @@ import (
 
 func init(){
 	config.Init()
+	scheduler.DeleteExpiredSessionFromRedis()
+	scheduler.StartScheduler()
 }
 
 func main() {

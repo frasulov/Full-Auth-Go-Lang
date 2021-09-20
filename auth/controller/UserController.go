@@ -41,10 +41,6 @@ func init() {
 	userService = service.GetNewService(*userRepository)
 }
 
-func GetUser(c *gin.Context) {
-	userService.GetUser(1)
-}
-
 func RefreshTokens(c * gin.Context) {
 	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
 	fullAccessTokenJWE := c.GetHeader("Authorization")
@@ -61,9 +57,6 @@ func RefreshTokens(c * gin.Context) {
 	token, _ := jwt.Parse(accessTokenJWT, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.Configuration.Password.Jwt.SecretKey), nil
 	})
-
-
-
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		userSession, err := redis.Get(fmt.Sprintf("accessToken-of-%v",claims["user-id"]))
 		if err != nil {
@@ -326,6 +319,41 @@ func ForgotPassword(c * gin.Context) {
 	}
 
 	message, err := userService.SendForgotPasswordMail(forgotPassword.Email)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": fmt.Sprintf("Error happens: %v", err),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": string(message),
+	})
+
+}
+
+func ChangePassword(c * gin.Context) {
+	reqBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Change password data is not valid",
+		})
+		return
+	}
+	var changePassword struct{
+		OldPassword			string `json:"old_password"`
+		NewPassword 		string `json:"new_password"`
+		ConfirmNewPassword 	string `json:"confirm_new_password"`
+	}
+	err = json.Unmarshal(reqBody, &changePassword)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Reset Password data is not valid",
+		})
+		return
+	}
+
+	props, _ := c.Request.Context().Value("props").(jwt.MapClaims)
+	message, err := userService.ChangePassword(fmt.Sprintf("%v", props["user-id"]), changePassword.OldPassword, changePassword.NewPassword, changePassword.ConfirmNewPassword)
 	if err != nil {
 		c.JSON(404, gin.H{
 			"message": fmt.Sprintf("Error happens: %v", err),

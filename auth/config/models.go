@@ -13,6 +13,7 @@ type Configurations struct {
 	Password Password
 	Redis Redis
 	Mail Mail
+	SessionDeleteScheduler string
 }
 
 type Mail struct {
@@ -47,6 +48,9 @@ type DB struct {
 
 type Password struct {
 	ResetExpire int
+	MinLength	int
+	ActivateAccountTokenExpire int
+	ForgotPasswordTokenExpire int
 	Jwt Jwt
 }
 

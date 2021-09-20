@@ -15,15 +15,20 @@ database:
   port: 5432
 
 
+sessionDeleteScheduler: "@every 1h"
+
 password:
   resetExpire: 24
+  minLength: 5
+  forgotPasswordTokenExpire: 1440
+  activateAccountTokenExpire: 1440
   jwt:
     secretKey: secret
     publicKey: secret
     privateKey: secret
     saltKey: secret
     accessTokenExpire: 3
-    refreshTokenExpire: 7
+    refreshTokenExpire: 5
 
 
 redis:

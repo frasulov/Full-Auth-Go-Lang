@@ -30,6 +30,12 @@ func (cache *redisCache) getClient() *redis.Client {
 	})
 }
 
+func (cache * redisCache) Scan(cursor uint64, match string, count int64) *redis.ScanCmd {
+	client := cache.getClient()
+	return client.Scan(context.Background(), cursor, match, count)
+}
+
+
 func (cache *redisCache) Set(key string, value *models.UserSession){
 	client := cache.getClient()
 	json, err := json2.Marshal(value)
