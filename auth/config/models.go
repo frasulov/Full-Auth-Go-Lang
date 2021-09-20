@@ -12,6 +12,11 @@ type Configurations struct {
 	Database DB
 	Password Password
 	Redis Redis
+	Mail Mail
+}
+
+type Mail struct {
+	Username, Password, Host string
 }
 
 type Redis struct {

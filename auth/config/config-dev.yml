@@ -1,5 +1,6 @@
 server:
   port: 8081
+  host: localhost
 profile:
   active: dev
 
@@ -30,3 +31,9 @@ redis:
   port: 6379
   db: 1
   expires: 1000
+
+
+mail:
+  username: frasulov1309@gmail.com
+  password: F5566041f
+  host: smtp.gmail.com

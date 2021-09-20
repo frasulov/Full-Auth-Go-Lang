@@ -40,12 +40,13 @@ func (cache *redisCache) Set(key string, value *models.UserSession){
 	client.Set(context.Background(), key, json, cache.expires*time.Second)
 }
 
-func (cache * redisCache) Del(key string) {
+func (cache * redisCache) Del(key string) error {
 	client := cache.getClient()
 	_, err := client.Del(context.Background(), key).Result()
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+	return nil
 }
 
 func (cache *redisCache) Get(key string) (*models.UserSession, error){

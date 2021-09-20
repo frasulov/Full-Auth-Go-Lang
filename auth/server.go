@@ -2,16 +2,19 @@ package main
 
 import (
 	"auth/config"
-	"github.com/dgrijalva/jwt-go"
-
 	jwt2 "auth/jwt"
 	"auth/route"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+func init(){
 	config.Init()
+}
+
+func main() {
+	fmt.Println(config.Configuration.Mail)
 	server := gin.Default()
 	route.AddUserRoutes(server)
 	testHand := func(c *gin.Context) {
@@ -22,5 +25,4 @@ func main() {
 	}
 	server.GET("/api/v1/user", jwt2.IsAuthorized(testHand))
 	server.Run(fmt.Sprintf("%s:%v", config.Configuration.Server.FillDefaults().Host, config.Configuration.Server.FillDefaults().Port))
-
 }

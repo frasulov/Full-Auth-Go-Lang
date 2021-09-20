@@ -3,7 +3,6 @@ package repo
 import (
 	"auth/models"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +14,10 @@ func GetNewUserRepository(conn *gorm.DB) *UserRepository{
 	return &UserRepository{
 		connection: conn,
 	}
+}
+
+func (userRepository * UserRepository) GetConnection() *gorm.DB{
+	return userRepository.connection
 }
 
 func (userRepository * UserRepository) Init() {
@@ -32,16 +35,7 @@ func (userRepository * UserRepository) GetUserById(id uint) models.User {
 }
 
 func (userRepository * UserRepository) Save(user *models.User) error {
-	password, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
-	if err != nil{
-		return fmt.Errorf("Unable to hash password")
-	}
-	user.Password = string(password)
-	result := userRepository.connection.Create(&user)
-	if result.Error != nil{
-		return  result.Error
-	}
-	return nil
+	return userRepository.connection.Create(&user).Error
 }
 
 func (userRepository * UserRepository) GetUserByMailOrUserName(username, email string) error {
@@ -67,4 +61,20 @@ func (userRepository * UserRepository) FindUserByEmailOrUsername(username string
 		return user, err
 	}
 	return user, nil
+}
+
+func (userRepository * UserRepository) FindUserByEmail(email string) (models.User, error) {
+	var user models.User
+	if err:= userRepository.connection.Where(models.User{Email: email}).First(&user).Error; err!=nil{
+		return user, err
+	}
+	return user, nil
+}
+
+func (userRepository * UserRepository) UpdateActive(id uint) error {
+	 return userRepository.connection.Model(&models.User{}).Where("id = ?", id).Update("is_active", true).Error
+}
+
+func (userRepository * UserRepository) SetPassword(id uint, password string) error {
+	return userRepository.connection.Model(&models.User{}).Where("id = ?", id).Update("password", password).Error
 }

@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "3a415e61-6a3c-4d1d-9c11-a9020637d95a",
+		"_postman_id": "8a7973d3-b8eb-4c79-9000-9044380dc2a2",
 		"name": "Go First Crud",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -29,7 +29,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"first_name\": \"Fagan\",\n    \"last_name\":  \"Rasulov\",\n    \"username\": \"frasulov1310\",\n    \"email\":\"frasulov1310@gmail.com\",\n    \"password\": \"fagan123\"\n}",
+					"raw": "{\n    \"first_name\": \"Fagan\",\n    \"last_name\":  \"Rasulov\",\n    \"username\": \"fradedsulov461\",\n    \"email\":\"frasulov4671@ada.edu.az\",\n    \"password\": \"fagan123\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -66,7 +66,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"username\":\"frasulov1310@gmail.com\",\n    \"password\": \"fagan123\"\n}",
+					"raw": "{\n    \"username\":\"frasulov4671@ada.edu.az\",\n    \"password\": \"admin123\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -90,6 +90,53 @@
 			"response": []
 		},
 		{
+			"name": "Logout",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwicDJjIjo0MDk2LCJwMnMiOiJjMkZzZEMxclpYayJ9.wCIourmhpVYa7nEhiMPxanwlwDnMnoVVPxd00_Ds59qtNloxdlyA1Q.nPF2ocAtXg2br2KrmSjigw.ESuWeRmvM3ZqiNwX0oKBxXL9oTPkGRX4Ol_wa-oZfeWEEk4XWfv9lQUVpOHzL4ETiCNzHIMmOu0_9E0-XjQJrgaiFOEVWxI3nTao-luCq6tpfrbjS2PQ19MHJ2ydIzSOOeFpBr1vtlxK9YNtc7jYUkwtNIub4Y4QO3YaNOnlagXtmKj3wbGgVJNr77nrPIRxfFvg93PczoGY8yansyF0lg.E2TzqbOmPW7h9M6yKMC0_g",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/v1/logout",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"v1",
+						"logout"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "/refresh-token",
 			"request": {
 				"auth": {
@@ -97,7 +144,7 @@
 					"bearer": [
 						{
 							"key": "token",
-							"value": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwicDJjIjo0MDk2LCJwMnMiOiJjMkZzZEMxclpYayJ9.XMSbdORQT6BcoehRm9G62p5IEDbTIOr-2x8Z8ADL-W0gawSDXJ2iqQ.HFqxazJYhJLsVBwJh4HfYA.TMJo57rR6vQBduCQ_jLAqQ9Q88ZXJG_485v8c7PQ67Scov3-tKcpn0gsnUs263Ul5LlcNnqyIknag_WU2vLH4tFbV1YtbIHVs7IWEszvPE8wFrNX2j8dhHRDCR5u8l4ti7qWBRLEjLqHInLvIyiUszEkv7Tr0Fkq92kGCOc9o_IPLSTBHq7bZxHTlcGb_mkPCfpM5rf7P7LD3_r8e07Gcg.veZ3PaByHqkgr7a2WC0EtA",
+							"value": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwicDJjIjo0MDk2LCJwMnMiOiJjMkZzZEMxclpYayJ9.fW_7HB8f2rfHgDNFVVCrXHSIvHirJL54zE25VMSkRwEt-3tVHkhcTw.z8yUaWWH-VZ4nZDhXHt5Fg.x1k9BVIR9asyB8FVMlQQaRp61SKprlEbRcDm1dsSldW6dPRu2tlNRXj2q4ohtALgzIzpFqVTp27QRH95xrZ58wMVMUu-tHGFo75Dw7huQUraUyAKSAo1YCqqQw-nDnuQDjAIzanIf-aBiqNbMOmLkdvlOv8HM2co2OKGfWsYg57TfQVsambYyVMpHMeyV7nsicDUhVVEjRD5i9aeRzX_dQ.RPFSZOfaC9oQcHZ6LFJKzQ",
 							"type": "string"
 						}
 					]
@@ -106,7 +153,7 @@
 				"header": [
 					{
 						"key": "Refresh-Token",
-						"value": "$2a$14$1olQRfY9APlP9AlH2wEkT.fhKdE.KY30h/76YWuG.p6BPnMp2cARO",
+						"value": "$2a$14$I2u/q3nXVGftYl01Rjhbc..GJNrRCtjZxzwk5iPedx6.HcqTlf9Py",
 						"type": "text"
 					}
 				],
@@ -136,34 +183,13 @@
 			"response": []
 		},
 		{
-			"name": "Delete Student",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-					"raw": "localhost:8000/api/v1/students/2",
-					"host": [
-						"localhost"
-					],
-					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"students",
-						"2"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "POST /students",
+			"name": "Forgot PAssword",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n        \"Name\": \"alasgar\",\n        \"Email\": \"sdfsdfdov46@ada.edu.az\",\n        \"ActivatedAt\": {\n            \"Time\": \"0001-01-01T00:00:00Z\",\n            \"Valid\": false\n        },\n        \"Birthday\": \"0001-01-01T03:19:24+03:19\"\n    }",
+					"raw": "{\n    \"email\":\"frasulov4671@ada.edu.az\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -171,28 +197,29 @@
 					}
 				},
 				"url": {
-					"raw": "localhost:8000/api/v1/students",
+					"raw": "http://localhost:8081/api/v1/forgot-password",
+					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8000",
+					"port": "8081",
 					"path": [
 						"api",
 						"v1",
-						"students"
+						"forgot-password"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "PUT /students",
+			"name": "Rest Password",
 			"request": {
-				"method": "PUT",
+				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n        \"Email\": \"fagan@dsg.com\"\n}",
+					"raw": "{\n    \"password\": \"admin123\",\n    \"confirm_password\": \"admin123\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -200,16 +227,14 @@
 					}
 				},
 				"url": {
-					"raw": "localhost:8000/api/v1/students/5",
+					"raw": "localhost:8081/reset-password/4247de5e-19d7-11ec-908f-a683e77b69fe",
 					"host": [
 						"localhost"
 					],
-					"port": "8000",
+					"port": "8081",
 					"path": [
-						"api",
-						"v1",
-						"students",
-						"5"
+						"reset-password",
+						"4247de5e-19d7-11ec-908f-a683e77b69fe"
 					]
 				}
 			},
@@ -218,9 +243,31 @@
 		{
 			"name": "/user",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwicDJjIjo0MDk2LCJwMnMiOiJjMkZzZEMxclpYayJ9.lKU7MdMQjPMGOBWqABUfAEDfdtXEGg9Z4Li_uxuuMpV5a_XsipiWKg.nv_w-_GfvdmuCpkjeizZzA.2cAIsYxfi4hanHza2JHVefZa5rNIEZqGRIshr__sUbodivpj9gVfrGEqpSg8nM76wydM1nkX_UkWoEqM7KpdBEjt2t8av8G3B0ldV2BHp0BxqxN0Y4AV-QFtMlAOpg1KCln6W_BMhGYKK2a0iwvPukCax0PKCkGRtDksAJan0hS95xz8HI16Hr8N_XWMMyqr4mHR9cGXspg-W48zJ1U5yw.iXJiZE92XRAiGcX2pd6Sig",
+							"type": "string"
+						}
+					]
+				},
 				"method": "GET",
 				"header": [],
-				"url": null
+				"url": {
+					"raw": "http://localhost:8081/api/v1/user",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"v1",
+						"user"
+					]
+				}
 			},
 			"response": []
 		}

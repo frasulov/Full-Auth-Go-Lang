@@ -20,6 +20,7 @@ import (
 
 
 var userService *service.UserService
+var userVerificationTokenRepository * models.UserVerificationTokenRepository
 func init() {
 	db := config.NewDatabase("localhost",
 		"postgres",
@@ -33,6 +34,8 @@ func init() {
 		fmt.Println("There is an error")
 		return
 	}
+	userVerificationTokenRepository = models.GetNewUserVerificationTokenRepository(conn)
+	userVerificationTokenRepository.Init()
 	userRepository := repo.GetNewUserRepository(conn)
 	userRepository.Init()
 	userService = service.GetNewService(*userRepository)
@@ -58,6 +61,9 @@ func RefreshTokens(c * gin.Context) {
 	token, _ := jwt.Parse(accessTokenJWT, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.Configuration.Password.Jwt.SecretKey), nil
 	})
+
+
+
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		userSession, err := redis.Get(fmt.Sprintf("accessToken-of-%v",claims["user-id"]))
 		if err != nil {
@@ -79,9 +85,7 @@ func RefreshTokens(c * gin.Context) {
 			})
 			return
 		}
-		fmt.Println("AccestokenSend: ", accessTokenJWT)
-		fmt.Println("AccesToken Redis: ", userSession.AccessToken)
-		if accessTokenJWT != userSession.AccessToken {
+		if splitToken[1] != userSession.AccessToken {
 			c.JSON(401, gin.H{
 				"message": "Your access token does not belong to your refresh token!",
 			})
@@ -122,6 +126,38 @@ func RefreshTokens(c * gin.Context) {
 	}
 }
 
+func Logout(c * gin.Context) {
+	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
+	fullAccessTokenJWE := c.GetHeader("Authorization")
+	splitToken := strings.Split(fullAccessTokenJWE, "Bearer ")
+	if len(splitToken) != 2 {
+		c.JSON(401, gin.H{
+			"message": "Malformed Token",
+		})
+		return
+	}
+	accessTokenJWT := jwt2.DecryptJWE(splitToken[1])
+	token, _ := jwt.Parse(accessTokenJWT, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.Configuration.Password.Jwt.SecretKey), nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if err := redis.Del(fmt.Sprintf("accessToken-of-%v",claims["user-id"])); err != nil{
+			c.JSON(400, gin.H{
+				"message": fmt.Sprintf("Error while logout: %v", err),
+			})
+			return
+		}
+		c.JSON(200, gin.H{
+			"message": "Succesfully logout!",
+		})
+		return
+	}
+	c.JSON(400, gin.H{
+		"message": "Error happens with jwt",
+	})
+}
+
 func Login(c * gin.Context) {
 	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
 	reqBody, err := ioutil.ReadAll(c.Request.Body)
@@ -146,6 +182,12 @@ func Login(c * gin.Context) {
 	if err!=nil{
 		c.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error happen: %v", err.Error()),
+		})
+		return
+	}
+	if !resultUser.IsActive {
+		c.JSON(400, gin.H{
+			"message": "Your account is not verified!",
 		})
 		return
 	}
@@ -203,4 +245,95 @@ func Register(c *gin.Context) {
 		return
 	}
 	c.JSON(201, user)
+}
+
+func ResetPassword(c * gin.Context) {
+	uuid := c.Param("uuid")
+	reqBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Reset password data is not valid",
+		})
+		return
+	}
+	var resetPassword struct{
+		Password string 		`json:"password"`
+		ConfirmPassword string 	`json:"confirm_password"`
+	}
+	err = json.Unmarshal(reqBody, &resetPassword)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Reset Password data is not valid",
+		})
+		return
+	}
+	message, err := userService.ResetPassword(resetPassword.Password, resetPassword.ConfirmPassword,uuid)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": fmt.Sprintf("Error happens: %v", err),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": string(message),
+	})
+}
+
+func Verify(c * gin.Context) {
+	uuid := c.Param("uuid")
+	userVerificationToken, err := userVerificationTokenRepository.FindByToken(uuid)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": "Token is not valid",
+		})
+		return
+	}
+	if userVerificationToken.ExpiredAt <= time.Now().Unix() {
+		c.JSON(404, gin.H{
+			"message": "Token has expired!",
+		})
+		return
+	}
+	err = userService.ActivateUser(userVerificationToken.UserId)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": fmt.Sprintf("Error happens while activating user: %v", err),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "User has been activated!",
+	})
+}
+
+func ForgotPassword(c * gin.Context) {
+	reqBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Email data is not valid",
+		})
+		return
+	}
+	var forgotPassword struct{
+		Email string `json:"email"`
+	}
+	err = json.Unmarshal(reqBody, &forgotPassword)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Login data is not valid",
+		})
+		return
+	}
+
+	message, err := userService.SendForgotPasswordMail(forgotPassword.Email)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": fmt.Sprintf("Error happens: %v", err),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": string(message),
+	})
+
 }
