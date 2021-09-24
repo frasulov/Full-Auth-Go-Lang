@@ -10,14 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func init(){
+func init() {
 	config.Init()
 	scheduler.DeleteExpiredSessionFromRedis()
 	scheduler.StartScheduler()
 }
 
 func main() {
-	fmt.Println(config.Configuration.Mail)
 	server := gin.Default()
 	route.AddUserRoutes(server)
 	testHand := func(c *gin.Context) {

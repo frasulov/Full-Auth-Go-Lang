@@ -7,12 +7,12 @@ import (
 )
 
 type Configurations struct {
-	Server Server
-	Profile Profile
-	Database DB
-	Password Password
-	Redis Redis
-	Mail Mail
+	Server                 Server
+	Profile                Profile
+	Database               DB
+	Password               Password
+	Redis                  Redis
+	Mail                   Mail
 	SessionDeleteScheduler string
 }
 
@@ -21,15 +21,15 @@ type Mail struct {
 }
 
 type Redis struct {
-	Host string
-	Port int
-	Db int
+	Host    string
+	Port    int
+	Db      int
 	Expires int
 }
 
 type Server struct {
-	Port int		`default:"8080"`
-	Host string		`default:"localhost"`
+	Port int    `default:"8080"`
+	Host string `default:"localhost"`
 }
 
 type Profile struct {
@@ -37,34 +37,33 @@ type Profile struct {
 }
 
 type DB struct {
-	Host string
-	User string
+	Host     string
+	User     string
 	Password string
-	Dbname string
-	Sslmode string
+	Dbname   string
+	Sslmode  string
 	Timezone string
-	Port int
+	Port     uint
 }
 
 type Password struct {
-	ResetExpire int
-	MinLength	int
+	ResetExpire                int
+	MinLength                  int
 	ActivateAccountTokenExpire int
-	ForgotPasswordTokenExpire int
-	Jwt Jwt
+	ForgotPasswordTokenExpire  int
+	Jwt                        Jwt
 }
 
 type Jwt struct {
-	SecretKey string
-	PublicKey string
-	PrivateKey string
-	SaltKey string
-	AccessTokenExpire int
+	SecretKey          string
+	PublicKey          string
+	PrivateKey         string
+	SaltKey            string
+	AccessTokenExpire  int
 	RefreshTokenExpire int
 }
 
-
-func (s  Server) FillDefaults() Server {
+func (s Server) FillDefaults() Server {
 	typ := reflect.TypeOf(s)
 	if s.Host == "" {
 		f, _ := typ.FieldByName("Host")
@@ -74,7 +73,7 @@ func (s  Server) FillDefaults() Server {
 		f, _ := typ.FieldByName("Port")
 		fmt.Println(strconv.Atoi(f.Tag.Get("default")))
 		port, err := strconv.Atoi(f.Tag.Get("default"))
-		if err != nil{
+		if err != nil {
 			return s
 		}
 		s.Port = port

@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"auth/models"
+	"auth/models/redisModels"
 	"context"
 	json2 "encoding/json"
 	"github.com/go-redis/redis/v8"
@@ -9,44 +9,43 @@ import (
 )
 
 type redisCache struct {
-	host string
-	db int
+	host    string
+	db      int
 	expires time.Duration
 }
 
 func NewRedisCache(host string, db int, expires time.Duration) PostCache {
 	return &redisCache{
-		host: host,
-		db: db,
+		host:    host,
+		db:      db,
 		expires: expires,
 	}
 }
 
 func (cache *redisCache) getClient() *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr: cache.host,
+		Addr:     cache.host,
 		Password: "",
-		DB: cache.db,
+		DB:       cache.db,
 	})
 }
 
-func (cache * redisCache) Scan(cursor uint64, match string, count int64) *redis.ScanCmd {
+func (cache *redisCache) Scan(cursor uint64, match string, count int64) *redis.ScanCmd {
 	client := cache.getClient()
 	return client.Scan(context.Background(), cursor, match, count)
 }
 
-
-func (cache *redisCache) Set(key string, value *models.UserSession){
+func (cache *redisCache) Set(key string, value *redisModels.UserSession) {
 	client := cache.getClient()
 	json, err := json2.Marshal(value)
-	if err != nil{
+	if err != nil {
 		panic(err.Error())
 	}
 
 	client.Set(context.Background(), key, json, cache.expires*time.Second)
 }
 
-func (cache * redisCache) Del(key string) error {
+func (cache *redisCache) Del(key string) error {
 	client := cache.getClient()
 	_, err := client.Del(context.Background(), key).Result()
 	if err != nil {
@@ -55,16 +54,16 @@ func (cache * redisCache) Del(key string) error {
 	return nil
 }
 
-func (cache *redisCache) Get(key string) (*models.UserSession, error){
+func (cache *redisCache) Get(key string) (*redisModels.UserSession, error) {
 	client := cache.getClient()
 	val, err := client.Get(context.Background(), key).Result()
-	if err != nil{
-		return &models.UserSession{}, err
+	if err != nil {
+		return &redisModels.UserSession{}, err
 	}
-	var post models.UserSession
+	var post redisModels.UserSession
 	err = json2.Unmarshal([]byte(val), &post)
-	if err !=nil{
-		return &models.UserSession{}, err
+	if err != nil {
+		return &redisModels.UserSession{}, err
 	}
 	return &post, nil
 }

@@ -2,8 +2,10 @@ package controller
 
 import (
 	"auth/config"
+	"auth/dto"
 	jwt2 "auth/jwt"
 	"auth/models"
+	"auth/models/redisModels"
 	cache "auth/redis"
 	"auth/repo"
 	"auth/service"
@@ -11,37 +13,36 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"strings"
 	"time"
 )
 
-
 var userService *service.UserService
-var userVerificationTokenRepository * models.UserVerificationTokenRepository
+var userVerificationTokenRepository *models.UserVerificationTokenRepository
+
 func init() {
-	db := config.NewDatabase("localhost",
-		"postgres",
-		"postgrespassword",
-		"postgres",
-		"disable",
-		"UTC",
-		5432)
+	config.Init()
+	db := config.NewDatabase(config.Configuration.Database.Host,
+		config.Configuration.Database.User,
+		config.Configuration.Database.Password,
+		config.Configuration.Database.Dbname,
+		config.Configuration.Database.Sslmode,
+		config.Configuration.Database.Timezone,
+		config.Configuration.Database.Port)
 	var conn, err = db.Connect()
-	if err != nil{
+	if err != nil {
 		fmt.Println("There is an error")
 		return
 	}
 	userVerificationTokenRepository = models.GetNewUserVerificationTokenRepository(conn)
-	userVerificationTokenRepository.Init()
+	//userVerificationTokenRepository.Init()
 	userRepository := repo.GetNewUserRepository(conn)
-	userRepository.Init()
 	userService = service.GetNewService(*userRepository)
 }
 
-func RefreshTokens(c * gin.Context) {
+func RefreshTokens(c *gin.Context) {
 	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
 	fullAccessTokenJWE := c.GetHeader("Authorization")
 	oldRefreshToken := c.GetHeader("Refresh-Token")
@@ -53,23 +54,23 @@ func RefreshTokens(c * gin.Context) {
 		})
 		return
 	}
-	accessTokenJWT := jwt2.DecryptJWE(splitToken[1])
+	accessTokenJWT := splitToken[1]
 	token, _ := jwt.Parse(accessTokenJWT, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.Configuration.Password.Jwt.SecretKey), nil
 	})
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		userSession, err := redis.Get(fmt.Sprintf("accessToken-of-%v",claims["user-id"]))
+		userSession, err := redis.Get(fmt.Sprintf("accessToken-of-%v", claims["user-id"]))
 		if err != nil {
 			c.JSON(401, gin.H{
 				"message": "There is no refresh key in your session. Login again!",
 			})
 			return
 		}
-		if userSession.ExpiredAt <= time.Now().Unix(){
+		if userSession.ExpiredAt <= time.Now().Unix() {
 			c.JSON(401, gin.H{
 				"message": "Your refresh token is expired",
 			})
-			redis.Del(fmt.Sprintf("accessToken-of-%v",userSession.UserId))
+			redis.Del(fmt.Sprintf("accessToken-of-%v", userSession.UserId))
 			return
 		}
 		if oldRefreshToken != userSession.RefreshToken {
@@ -84,58 +85,46 @@ func RefreshTokens(c * gin.Context) {
 			})
 			return
 		}
+
 		// create new access and refresh token
-		accessJWT, err := jwt2.GenerateJWT(time.Minute*time.Duration(config.Configuration.Password.Jwt.AccessTokenExpire), userSession.UserId)
+		err = jwt2.AddTokens(userSession)
 		if err != nil {
 			c.JSON(400, gin.H{
-				"message": "Access Token generation failed",
+				"message": err.Error(),
 			})
 			return
 		}
-		refreshToken, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 14)
-		if err != nil {
-			c.JSON(400, gin.H{
-				"message": "Refresh Token generation failed",
-			})
-			return
-		}
-		accessJWE := jwt2.GenerateJWE(accessJWT)
-		redis.Set(fmt.Sprintf("accessToken-of-%v", userSession.UserId), &models.UserSession{
-			UserId:       userSession.UserId,
-			AccessToken:  accessJWE,
-			RefreshToken: string(refreshToken),
-			ExpiredAt:    time.Now().Add(time.Minute * time.Duration(config.Configuration.Password.Jwt.RefreshTokenExpire)).Unix(),
-		})
+		jwt2.CreateSession(userSession)
 
 		c.JSON(200, gin.H{
-			"access-token":  accessJWE,
-			"refresh-token": string(refreshToken),
+			"access-token":  userSession.AccessToken,
+			"refresh-token": userSession.RefreshToken,
 		})
 
-	}else{
+	} else {
 		c.JSON(400, gin.H{
 			"message": "Access token is not correct",
 		})
 	}
 }
 
-func Logout(c * gin.Context) {
+func Logout(c *gin.Context) {
 	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
-	fullAccessTokenJWE := c.GetHeader("Authorization")
-	splitToken := strings.Split(fullAccessTokenJWE, "Bearer ")
+	fullAccessTokenJWT := c.GetHeader("Authorization")
+	splitToken := strings.Split(fullAccessTokenJWT, "Bearer ")
 	if len(splitToken) != 2 {
 		c.JSON(401, gin.H{
 			"message": "Malformed Token",
 		})
 		return
 	}
-	accessTokenJWT := jwt2.DecryptJWE(splitToken[1])
+	accessTokenJWT := splitToken[1]
 	token, _ := jwt.Parse(accessTokenJWT, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.Configuration.Password.Jwt.SecretKey), nil
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		if err := redis.Del(fmt.Sprintf("accessToken-of-%v",claims["user-id"])); err != nil{
+		if err := redis.Del(fmt.Sprintf("accessToken-of-%v", claims["user-id"])); err != nil {
 			c.JSON(400, gin.H{
 				"message": fmt.Sprintf("Error while logout: %v", err),
 			})
@@ -151,8 +140,7 @@ func Logout(c * gin.Context) {
 	})
 }
 
-func Login(c * gin.Context) {
-	redis := cache.NewRedisCache(fmt.Sprintf("%s:%v", config.Configuration.Redis.Host, config.Configuration.Redis.Port), config.Configuration.Redis.Db, time.Duration(config.Configuration.Redis.Expires))
+func Login(c *gin.Context) {
 	reqBody, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -160,8 +148,8 @@ func Login(c * gin.Context) {
 		})
 		return
 	}
-	var login struct{
-		Username string `json:"username"`
+	var login struct {
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	err = json.Unmarshal(reqBody, &login)
@@ -171,14 +159,15 @@ func Login(c * gin.Context) {
 		})
 		return
 	}
-	resultUser, err := userService.FindUserByEmailOrUsername(login.Username)
-	if err!=nil{
+	resultUser, err := userService.FindUserByEmail(login.Email)
+	if err != nil {
 		c.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error happen: %v", err.Error()),
 		})
 		return
 	}
-	if !resultUser.IsActive {
+	if !resultUser.IsVerified {
+
 		c.JSON(400, gin.H{
 			"message": "Your account is not verified!",
 		})
@@ -191,26 +180,91 @@ func Login(c * gin.Context) {
 		})
 		return
 	}
-	accessJWT, err := jwt2.GenerateJWT(time.Minute*time.Duration(config.Configuration.Password.Jwt.AccessTokenExpire), resultUser.ID)
-	if err != nil{
+	userSession := redisModels.NewUserSession(resultUser.ID)
+	err = jwt2.AddTokens(userSession)
+	if err != nil {
 		c.JSON(400, gin.H{
-			"message": "Token generation failed",
+			"message": err.Error(),
 		})
 		return
 	}
-	accessJWE := jwt2.GenerateJWE(accessJWT)
-	refreshToken, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 14)
-
-	redis.Set(fmt.Sprintf("accessToken-of-%v",resultUser.ID), &models.UserSession{
-		UserId:       resultUser.ID,
-		AccessToken:  accessJWE,
-		RefreshToken: string(refreshToken),
-		ExpiredAt:    time.Now().Add(time.Minute*time.Duration(config.Configuration.Password.Jwt.RefreshTokenExpire)).Unix(),
-	})
+	jwt2.CreateSession(userSession)
 
 	c.JSON(200, gin.H{
-		"access-token":  accessJWE,
-		"refresh-token": string(refreshToken),
+		"access-token":  userSession.AccessToken,
+		"refresh-token": userSession.RefreshToken,
+	})
+}
+
+func RegisterChampionStepTwo(c *gin.Context) {
+	reqBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Error while reading request body!",
+		})
+		return
+	}
+	var user dto.RegisterUserStep2Dto
+	err = json.Unmarshal(reqBody, &user)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(400, gin.H{
+			"message": "Your data is not valid!",
+		})
+		return
+	}
+	props, _ := c.Request.Context().Value("props").(jwt.MapClaims)
+	message, err := userService.FinalizeChampionRegistration(fmt.Sprintf("%v", props["user-id"]), &user)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": fmt.Sprintf("Error happens: %v", err),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": string(message),
+	})
+}
+
+func RegisterChampionStepOne(c *gin.Context) {
+	reqBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Error while reading request body!",
+		})
+		return
+	}
+	var user dto.RegisterUserDto
+	err = json.Unmarshal(reqBody, &user)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": "Your data is not valid!",
+		})
+		return
+	}
+	user.Role = "CHAMPION"
+	err = userService.RegisterUser(&user)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// create jwt
+	userSession := redisModels.NewUserSession(user.ID)
+	err = jwt2.AddTokens(userSession)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	jwt2.CreateSession(userSession)
+
+	c.JSON(200, gin.H{
+		"access-token":  userSession.AccessToken,
+		"refresh-token": userSession.RefreshToken,
 	})
 }
 
@@ -222,7 +276,7 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-	var user models.User
+	var user dto.RegisterUserDto
 	err = json.Unmarshal(reqBody, &user)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -237,10 +291,25 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(201, user)
+
+	// create jwt
+	userSession := redisModels.NewUserSession(user.ID)
+	err = jwt2.AddTokens(userSession)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	jwt2.CreateSession(userSession)
+
+	c.JSON(200, gin.H{
+		"access-token":  userSession.AccessToken,
+		"refresh-token": userSession.RefreshToken,
+	})
 }
 
-func ResetPassword(c * gin.Context) {
+func ResetPassword(c *gin.Context) {
 	uuid := c.Param("uuid")
 	reqBody, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -249,9 +318,9 @@ func ResetPassword(c * gin.Context) {
 		})
 		return
 	}
-	var resetPassword struct{
-		Password string 		`json:"password"`
-		ConfirmPassword string 	`json:"confirm_password"`
+	var resetPassword struct {
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirm_password"`
 	}
 	err = json.Unmarshal(reqBody, &resetPassword)
 	if err != nil {
@@ -260,7 +329,7 @@ func ResetPassword(c * gin.Context) {
 		})
 		return
 	}
-	message, err := userService.ResetPassword(resetPassword.Password, resetPassword.ConfirmPassword,uuid)
+	message, err := userService.ResetPassword(resetPassword.Password, resetPassword.ConfirmPassword, uuid)
 	if err != nil {
 		c.JSON(404, gin.H{
 			"message": fmt.Sprintf("Error happens: %v", err),
@@ -272,7 +341,7 @@ func ResetPassword(c * gin.Context) {
 	})
 }
 
-func Verify(c * gin.Context) {
+func Verify(c *gin.Context) {
 	uuid := c.Param("uuid")
 	userVerificationToken, err := userVerificationTokenRepository.FindByToken(uuid)
 	if err != nil {
@@ -281,7 +350,7 @@ func Verify(c * gin.Context) {
 		})
 		return
 	}
-	if userVerificationToken.ExpiredAt <= time.Now().Unix() {
+	if userVerificationToken.CreatedAt.Unix() <= time.Now().Unix() {
 		c.JSON(404, gin.H{
 			"message": "Token has expired!",
 		})
@@ -299,7 +368,7 @@ func Verify(c * gin.Context) {
 	})
 }
 
-func ForgotPassword(c * gin.Context) {
+func ForgotPassword(c *gin.Context) {
 	reqBody, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -307,13 +376,13 @@ func ForgotPassword(c * gin.Context) {
 		})
 		return
 	}
-	var forgotPassword struct{
+	var forgotPassword struct {
 		Email string `json:"email"`
 	}
 	err = json.Unmarshal(reqBody, &forgotPassword)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"message": "Login data is not valid",
+			"message": "Email is not valid",
 		})
 		return
 	}
@@ -331,7 +400,7 @@ func ForgotPassword(c * gin.Context) {
 
 }
 
-func ChangePassword(c * gin.Context) {
+func ChangePassword(c *gin.Context) {
 	reqBody, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -339,10 +408,10 @@ func ChangePassword(c * gin.Context) {
 		})
 		return
 	}
-	var changePassword struct{
-		OldPassword			string `json:"old_password"`
-		NewPassword 		string `json:"new_password"`
-		ConfirmNewPassword 	string `json:"confirm_new_password"`
+	var changePassword struct {
+		OldPassword        string `json:"old_password"`
+		NewPassword        string `json:"new_password"`
+		ConfirmNewPassword string `json:"confirm_new_password"`
 	}
 	err = json.Unmarshal(reqBody, &changePassword)
 	if err != nil {

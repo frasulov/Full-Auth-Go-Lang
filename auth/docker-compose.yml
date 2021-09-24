@@ -3,32 +3,40 @@ services:
   redis:
     image: redis
     volumes:
-      - db_data:/var/lib/postgresql/redisdata
+      - db_data:/var/lib/postgresql/hasura_redis
     ports:
       - "6379:6379"
   postgres:
     image: postgres
     volumes:
-      - db_data:/var/lib/postgresql/start_up_auth
+      - db_data:/var/lib/postgresql/hasura_auth
     ports:
       - "5432:5432"
     extra_hosts:
       - "localhost:172.16.11.40"
     environment:
       POSTGRES_PASSWORD: postgrespassword
-#  app:
-#    container_name: startapp-auth
-#    depends_on:
-#      - "postgres"
-#    image: app-dev
-#    build:
-#      context: .
-#      target: development
-#    volumes:
-#      - .:/app
-#    ports:
-#      - "4001:4001"
-#    extra_hosts:
-#      - "localhost:172.16.11.40"
+  graphql-engine:
+    image: hasura/graphql-engine:v2.0.9
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "localhost:172.16.11.40"
+    depends_on:
+      - "postgres"
+    environment:
+      ## postgres database to store Hasura metadata
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/auth
+      ## this env var can be used to add the above postgres database to Hasura as a data source. this can be removed/updated based on your needs
+      PG_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
+      ## enable the console served by server
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
+      ## enable debugging mode. It is recommended to disable this in production
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      ## uncomment next line to set an admin secret
+      HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+      HASURA_GRAPHQL_JWT_SECRET: '{"type": "HS256","key": "3EK6FD+o0+c7tzBNVfjpMkNDi2yARAAKzQlk8O2IKoxQu4nF7EdAh8s3TwpHwrdWT6R"}'
+
 volumes:
   db_data:

@@ -9,7 +9,7 @@ database:
   host: localhost
   user: postgres
   password: postgrespassword
-  dbname: postgres
+  dbname: auth
   sslmode: disable
   timezone: UTC
   port: 5432
@@ -23,12 +23,12 @@ password:
   forgotPasswordTokenExpire: 1440
   activateAccountTokenExpire: 1440
   jwt:
-    secretKey: secret
+    secretKey: "3EK6FD+o0+c7tzBNVfjpMkNDi2yARAAKzQlk8O2IKoxQu4nF7EdAh8s3TwpHwrdWT6R"
     publicKey: secret
     privateKey: secret
     saltKey: secret
-    accessTokenExpire: 3
-    refreshTokenExpire: 5
+    accessTokenExpire: 200
+    refreshTokenExpire: 5000
 
 
 redis:
@@ -42,3 +42,5 @@ mail:
   username: frasulov1309@gmail.com
   password: F5566041f
   host: smtp.gmail.com
+
+publicLoginToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJleHAiOjMzMTk3OTA0MDAwLCJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYWRtaW4iLCJwdWJsaWMiXSwieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjoicHVibGljIiwieC1oYXN1cmEtdXNlci1pZCI6Ii0xIn0sImlhdCI6MTYzMjQ3NjcyOCwidXNlci1pZCI6Ii0xIn0.CRu8L1gAfVQjj9L8jU-XURU7KIhIGrKu2yL1p7KFB2c"

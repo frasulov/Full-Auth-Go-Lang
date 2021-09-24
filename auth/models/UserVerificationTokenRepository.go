@@ -5,7 +5,7 @@ import (
 )
 
 type UserVerificationTokenRepository struct {
-	connection		*gorm.DB
+	connection *gorm.DB
 }
 
 func GetNewUserVerificationTokenRepository(conn *gorm.DB) *UserVerificationTokenRepository {
@@ -19,18 +19,17 @@ func (userVerificationTokenRepository *UserVerificationTokenRepository) Init() {
 }
 
 func (userVerificationTokenRepository *UserVerificationTokenRepository) Save(userVerificationToken *UserVerificationToken) error {
-
 	result := userVerificationTokenRepository.connection.Create(&userVerificationToken)
-	if result.Error != nil{
-		return  result.Error
+	if result.Error != nil {
+		return result.Error
 	}
 	return nil
 }
 
-func (userVerificationTokenRepository *UserVerificationTokenRepository) FindByToken(token string) (UserVerificationToken,error) {
+func (userVerificationTokenRepository *UserVerificationTokenRepository) FindByToken(token string) (UserVerificationToken, error) {
 	var userVerificationToken UserVerificationToken
-	result := userVerificationTokenRepository.connection.Where("token = ?", token).First(&userVerificationToken)
-	if result.Error != nil{
+	result := userVerificationTokenRepository.connection.Where("id = ?", token).First(&userVerificationToken)
+	if result.Error != nil {
 		return userVerificationToken, result.Error
 	}
 	return userVerificationToken, nil
